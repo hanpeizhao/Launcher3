@@ -310,6 +310,10 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField
         val FIXED_LANDSCAPE_MODE = backedUpItem(SettingsActivity.FIXED_LANDSCAPE_MODE, false)
 
+        /** 负一屏开关（launcher_preferences.xml 的 pref_negative_screen）。 */
+        @JvmField
+        val NEGATIVE_SCREEN_ENABLED = backedUpItem("pref_negative_screen", false)
+
         @JvmField
         val NON_FIXED_LANDSCAPE_GRID_NAME =
             ConstantItem(

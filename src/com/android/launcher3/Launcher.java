@@ -212,6 +212,7 @@ import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.LauncherAppWidgetInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
+import com.android.launcher3.negativescreen.NegativeScreenController;
 import com.android.launcher3.notification.NotificationListener;
 import com.android.launcher3.pm.PinRequestHelper;
 import com.android.launcher3.popup.ArrowPopup;
@@ -396,6 +397,9 @@ public class Launcher extends StatefulActivity<LauncherState>
 
     private RotationHelper mRotationHelper;
 
+    // 负一屏宿主控制器：开关监听、第 0 页页面管理、companion 服务绑定
+    private NegativeScreenController mNegativeScreenController;
+
     protected LauncherOverlayManager mOverlayManager;
     protected DragController mDragController;
     // If true, overlay callbacks are deferred
@@ -539,6 +543,7 @@ public class Launcher extends StatefulActivity<LauncherState>
 
         setupViews();
         updateDisallowBack();
+        mNegativeScreenController = new NegativeScreenController(this);
 
         mAppWidgetHolder.startListening();
         mAppWidgetHolder.addProviderChangeListener(() -> refreshAndBindWidgetsForPackageUser(null));
@@ -1647,7 +1652,9 @@ public class Launcher extends StatefulActivity<LauncherState>
                     mAppsView.reset(isStarted() /* animate */);
                 }
 
-                if (shouldMoveToDefaultScreen && !mWorkspace.isHandlingTouch()) {
+                if (mNegativeScreenController != null && mNegativeScreenController.onHomePressed()) {
+                    // 负一屏覆盖层开启：Home 键只关闭覆盖层，主屏保持原位
+                } else if (shouldMoveToDefaultScreen && !mWorkspace.isHandlingTouch()) {
                     mWorkspace.post(mWorkspace::moveToDefaultScreen);
                 }
             }
@@ -1788,6 +1795,10 @@ public class Launcher extends StatefulActivity<LauncherState>
 
         mModel.removeCallbacks(this);
         mRotationHelper.destroy();
+        if (mNegativeScreenController != null) {
+            mNegativeScreenController.destroy();
+            mNegativeScreenController = null;
+        }
 
         mAppWidgetHolder.stopListening();
         mAppWidgetHolder.destroy();
@@ -2897,6 +2908,10 @@ public class Launcher extends StatefulActivity<LauncherState>
     @Override
     public CellPosMapper getCellPosMapper() {
         return mCellPosMapper;
+    }
+
+    public NegativeScreenController getNegativeScreenController() {
+        return mNegativeScreenController;
     }
 
     public RotationHelper getRotationHelper() {

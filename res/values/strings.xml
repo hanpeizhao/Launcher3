@@ -361,6 +361,11 @@
     <!-- Text description of the setting that allows the automatic placement of launcher shortcuts for applications and games installed on the device [CHAR LIMIT=NONE] -->
     <string name="auto_add_shortcuts_description">For new apps</string>
 
+    <!-- Negative screen (left-most feed page) setting [CHAR LIMIT=40] -->
+    <string name="negative_screen_title">负一屏</string>
+    <!-- Summary for the negative screen setting [CHAR LIMIT=NONE] -->
+    <string name="negative_screen_desc">在桌面最左侧显示资讯卡片流（由个人助理应用提供）</string>
+
     <!-- Label on an icon that references an uninstalled package, for which we have no information about when it might be installed. [CHAR_LIMIT=15] -->
     <string name="package_state_unknown">Unknown</string>
 

@@ -50,4 +50,12 @@
         launcher:logIdOn="615"
         launcher:logIdOff="616" />
 
+    <!-- 负一屏：开关变化经 LauncherPrefs.NEGATIVE_SCREEN_ENABLED 通知 NegativeScreenController -->
+    <SwitchPreference
+        android:key="pref_negative_screen"
+        android:title="@string/negative_screen_title"
+        android:summary="@string/negative_screen_desc"
+        android:defaultValue="false"
+        android:persistent="true" />
+
 </androidx.preference.PreferenceScreen>

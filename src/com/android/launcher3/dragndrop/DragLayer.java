@@ -95,6 +95,15 @@ public class DragLayer extends BaseDragLayer<Launcher> implements LauncherOverla
     private final ViewGroupFocusHelper mFocusIndicatorHelper;
     private Scrim mWorkspaceDragScrim;
 
+    // 负一屏覆盖层手势钩子（主屏上右滑拉出覆盖层，见 NegativeScreenController）
+    private com.android.launcher3.negativescreen.NegativeScreenController mNegativeScreenController;
+
+    /** 注册负一屏手势钩子，由 Launcher 在控制器创建后调用。 */
+    public void setNegativeScreenController(
+            com.android.launcher3.negativescreen.NegativeScreenController controller) {
+        mNegativeScreenController = controller;
+    }
+
     /**
      * Used to create a new DragLayer from XML.
      *
@@ -125,6 +134,24 @@ public class DragLayer extends BaseDragLayer<Launcher> implements LauncherOverla
     @Override
     public void recreateControllers() {
         mControllers = mContainer.createTouchControllers();
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        // 负一屏：主屏右滑拉出覆盖层时拦截整条触摸流，主屏保持静止
+        if (mNegativeScreenController != null && mNegativeScreenController.onInterceptTouch(ev)) {
+            return true;
+        }
+        return super.onInterceptTouchEvent(ev);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        // 负一屏：拦截激活后由控制器接管，驱动覆盖层跟手
+        if (mNegativeScreenController != null && mNegativeScreenController.onHostTouch(ev)) {
+            return true;
+        }
+        return super.onTouchEvent(ev);
     }
 
     public ViewGroupFocusHelper getFocusIndicatorHelper() {

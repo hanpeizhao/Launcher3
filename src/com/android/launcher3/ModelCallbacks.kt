@@ -309,6 +309,9 @@ class ModelCallbacks(private var launcher: Launcher) : BgDataModel.Callbacks {
             /*pause=*/ true,
             launcher.deviceProfile.isTwoPanels,
         )
+        // 负一屏覆盖层在页面重建后确保存在（DragLayer 层，不占 Workspace 页面）。
+        // 控制器内部按开关判断，幂等。
+        launcher.negativeScreenController.onScreensBound()
         val firstScreenPosition = 0
         if (
             (isFirstPagePinnedItemEnabled && !SHOULD_SHOW_FIRST_PAGE_WIDGET) &&
