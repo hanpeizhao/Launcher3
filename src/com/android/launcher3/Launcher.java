@@ -1560,11 +1560,9 @@ public class Launcher extends StatefulActivity<LauncherState>
             mWorkspace.addInScreen(hostView, launcherInfo);
         }
 
-        // Show the widget resize frame.
-        if (hostView instanceof LauncherAppWidgetHostView) {
-            final LauncherAppWidgetHostView launcherHostView = (LauncherAppWidgetHostView) hostView;
-            showWidgetResizeFrame(launcherHostView, launcherInfo, presenterPos);
-        }
+        // 不再在添加微件后自动显示调整大小框：该框在 HyperOS 上表现为
+        // 贴合微件的黑色描边且需点击空白处才消失，观感如同残留轮廓。
+        // 需要调整大小时可通过长按微件菜单操作。
     }
 
     /** Show widget resize frame. */
