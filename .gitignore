@@ -6,3 +6,5 @@ Launcher3_mx.iml
 gradlew
 gradlew.bat
 .kotlin
+jdk-21.0.12.1+1
+jdk21.zip

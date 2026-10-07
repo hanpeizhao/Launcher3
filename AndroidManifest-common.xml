@@ -17,11 +17,9 @@
 ** limitations under the License.
 */
 -->
-<manifest
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.android.launcher3"
-    android:sharedUserId="android.uid.system">
+    package="com.android.launcher3">
 
     <!--
     The manifest defines the common entries that should be present in any derivative of Launcher3.
