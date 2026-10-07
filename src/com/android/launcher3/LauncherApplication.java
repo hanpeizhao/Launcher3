@@ -16,6 +16,10 @@
 package com.android.launcher3;
 
 import android.app.Application;
+import android.content.Context;
+import android.os.Build;
+
+import org.lsposed.hiddenapibypass.HiddenApiBypass;
 
 import com.android.launcher3.dagger.DaggerLauncherAppComponent;
 import com.android.launcher3.dagger.LauncherAppComponent;
@@ -32,6 +36,19 @@ public class LauncherApplication extends Application {
     public void onCreate() {
         super.onCreate();
         MainProcessInitializer.initialize(this);
+    }
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        // AOSP 桌面大量使用平台隐藏 API；在零售机（如 HyperOS）上以第三方应用身份运行时
+        // 会被隐藏 API 强拦截导致闪退。在进程内把自身加入豁免名单（"L" 前缀覆盖所有类）。
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            try {
+                HiddenApiBypass.setHiddenApiExemptions("L");
+            } catch (Throwable ignored) {
+            }
+        }
     }
 
     public LauncherAppComponent getAppComponent() {
