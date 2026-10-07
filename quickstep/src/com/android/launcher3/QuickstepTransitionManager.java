@@ -80,6 +80,7 @@ import android.app.WindowConfiguration;
 import android.app.role.RoleManager;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Matrix;
@@ -329,6 +330,13 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
      * targets are displayed.
      */
     public ActivityOptionsWrapper getActivityLaunchOptions(View v, ItemInfo itemInfo) {
+        if (mLauncher.checkSelfPermission(
+                android.Manifest.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            // 非系统应用无远程动画权限：携带 RemoteAnimationAdapter 启动应用会被直接拒绝，
+            // 返回默认启动选项，走系统默认转场动画
+            return new ActivityOptionsWrapper(ActivityOptions.makeBasic(), new RunnableList());
+        }
         boolean fromRecents = isLaunchingFromRecents(v, null /* targets */);
         RunnableList onEndCallback = new RunnableList();
 
@@ -1201,7 +1209,12 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
         }
         RemoteAnimationDefinition definition = new RemoteAnimationDefinition();
         addRemoteAnimations(definition);
-        mLauncher.registerRemoteAnimations(definition);
+        try {
+            mLauncher.registerRemoteAnimations(definition);
+        } catch (SecurityException e) {
+            // 非系统应用无 CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS 权限，
+            // 注册远程转场动画无效，使用系统默认转场
+        }
     }
 
     /**
@@ -1298,7 +1311,11 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
         if (SEPARATE_RECENTS_ACTIVITY.get()) {
             return;
         }
-        mLauncher.unregisterRemoteAnimations();
+        try {
+            mLauncher.unregisterRemoteAnimations();
+        } catch (SecurityException e) {
+            // 与 registerRemoteAnimations 对应：未成功注册时注销同样会被权限拒绝
+        }
 
         // Also clear strong references to the runners registered with the remote animation
         // definition so we don't have to wait for the system gc

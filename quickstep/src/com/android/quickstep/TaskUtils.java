@@ -116,7 +116,13 @@ public final class TaskUtils {
      * Requests that the system close any open system windows (including other SystemUI).
      */
     public static void closeSystemWindowsAsync(String reason) {
-        UI_HELPER_EXECUTOR.execute(
-                () -> ActivityManagerWrapper.getInstance().closeSystemWindows(reason));
+        UI_HELPER_EXECUTOR.execute(() -> {
+            try {
+                ActivityManagerWrapper.getInstance().closeSystemWindows(reason);
+            } catch (SecurityException e) {
+                // 非系统应用身份无 BROADCAST_CLOSE_SYSTEM_DIALOGS 权限，binder 调用被拒。
+                // 仅损失"启动前自动收起通知面板/系统弹窗"的非必要行为，跳过即可
+            }
+        });
     }
 }

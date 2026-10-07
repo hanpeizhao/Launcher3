@@ -198,7 +198,8 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
         try {
             mPipIsActive = ActivityTaskManager.getService().getRootTaskInfo(
                     WINDOWING_MODE_PINNED, ACTIVITY_TYPE_UNDEFINED) != null;
-        } catch (RemoteException e) {
+        } catch (RemoteException | SecurityException e) {
+            // 非系统应用无 MANAGE_ACTIVITY_TASKS 权限，无法查询画中画任务，保持默认值
             // Do nothing
         }
         mPipListener = new TaskStackChangeListener() {

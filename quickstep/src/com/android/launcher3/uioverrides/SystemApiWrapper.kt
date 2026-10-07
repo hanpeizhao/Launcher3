@@ -59,12 +59,25 @@ open class SystemApiWrapper @Inject constructor(@ApplicationContext context: Con
     override fun getPersons(si: ShortcutInfo) = si.persons ?: Utilities.EMPTY_PERSON_ARRAY
 
     override fun getActivityOverrides(): Map<String, LauncherActivityInfo> =
-        mContext.getSystemService(LauncherApps::class.java)!!.activityOverrides
-
-    override fun createFadeOutAnimOptions(): ActivityOptions =
-        ActivityOptions.makeBasic().apply {
-            remoteTransition = RemoteTransition(FadeOutRemoteTransition(), "FadeOut")
+        try {
+            mContext.getSystemService(LauncherApps::class.java)!!.activityOverrides
+        } catch (e: SecurityException) {
+            // 仅默认桌面可访问 activity overrides；未被设为默认桌面时降级为空
+            emptyMap()
         }
+
+    override fun createFadeOutAnimOptions(): ActivityOptions {
+        val options = ActivityOptions.makeBasic()
+        // 非系统应用无远程动画权限，附加 remoteTransition 启动会被拒绝，走系统默认转场
+        if (mContext.checkSelfPermission(
+                android.Manifest.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            return options
+        }
+        options.remoteTransition = RemoteTransition(FadeOutRemoteTransition(), "FadeOut")
+        return options
+    }
 
     override fun queryAllUsers(): Map<UserHandle, UserIconInfo> {
         if (!allowPrivateProfile() || !enablePrivateSpace()) {
