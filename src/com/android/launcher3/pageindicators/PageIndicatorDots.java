@@ -143,6 +143,16 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
     private int mToAlpha;
 
     /**
+     * 负一屏虚拟页：true 时视觉页数 = 实际页数 + 1，负一屏作为第 0 个 marker 参与
+     * 原生的激活胶囊延伸/回弹动画（无任何特殊绘制分支）。
+     * 仅 Workspace 指示器启用（文件夹指示器不受影响）；RTL 布局不支持，保持原样。
+     */
+    private boolean mNegativePageEnabled;
+
+    /** 视觉页数，用于布局与绘制；Workspace 滚动映射仍基于 mNumPages。 */
+    private int mVisualPages;
+
+    /**
      * The current position of the active dot including the animation progress.
      * For ex:
      * 0.0  => Active dot is at position 0
@@ -193,7 +203,7 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
     @Override
     public void setScroll(int currentScroll, int totalScroll) {
         if (currentScroll == 0 && totalScroll == 0) {
-            CURRENT_POSITION.set(this, (float) mActivePage);
+            CURRENT_POSITION.set(this, visualPage(mActivePage));
             return;
         }
 
@@ -219,7 +229,7 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
         if (enableLauncherVisualRefresh()) {
             float scrollPerPage = (float) totalScroll / (mNumPages - 1);
             float position = currentScroll / scrollPerPage;
-            animateToPosition(Math.round(position));
+            animateToPosition(visualPage(Math.round(position)));
 
             float delta = Math.abs((int) position - position);
             if (mShouldAutoHide && (delta < 0.1 || delta > 0.9)) {
@@ -234,19 +244,19 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
             float scrollThreshold = SHIFT_THRESHOLD * scrollPerPage;
             if (currentScroll < pageToLeftScroll + scrollThreshold) {
                 // scroll is within the left page's threshold
-                animateToPosition(pageToLeft);
+                animateToPosition(visualPage(pageToLeft));
                 if (mShouldAutoHide) {
                     hideAfterDelay();
                 }
             } else if (currentScroll > pageToRightScroll - scrollThreshold) {
                 // scroll is far enough from left page to go to the right page
-                animateToPosition(pageToLeft + 1);
+                animateToPosition(visualPage(pageToLeft + 1));
                 if (mShouldAutoHide) {
                     hideAfterDelay();
                 }
             } else {
                 // scroll is between left and right page
-                animateToPosition(pageToLeft + SHIFT_PER_ANIMATION);
+                animateToPosition(visualPage(pageToLeft) + SHIFT_PER_ANIMATION);
                 if (mShouldAutoHide) {
                     mDelayedPaginationFadeHandler.removeCallbacksAndMessages(null);
                 }
@@ -267,6 +277,53 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
     @Override
     public void setPaintColor(int color) {
         mPaginationPaint.setColor(color);
+    }
+
+    /** 页索引 → 视觉位置：启用负一屏虚拟页后整体右移一位。 */
+    private float visualPage(float page) {
+        return mNegativePageEnabled ? page + 1 : page;
+    }
+
+    private void refreshVisualPages() {
+        mVisualPages = mNumPages + (mNegativePageEnabled ? 1 : 0);
+    }
+
+    /** 启用/关闭负一屏虚拟页（由 NegativeScreenController 按开关状态调用）。 */
+    public void enableNegativePage(boolean enabled) {
+        if (mIsRtl || mNegativePageEnabled == enabled) {
+            return;
+        }
+        mNegativePageEnabled = enabled;
+        refreshVisualPages();
+        if (enabled) {
+            // 主屏首页从视觉位置 0 变为 1，立即校正，避免激活点落在负一屏位上
+            CURRENT_POSITION.set(this, visualPage(mActivePage));
+        }
+        requestLayout();
+        invalidate();
+    }
+
+    /**
+     * 负一屏覆盖进度：0 = 激活点在主屏首页，1 = 完全打开负一屏（视觉位置 0）。
+     * 直接设置原生位置体系，激活胶囊的延伸与回弹全部走原生绘制；
+     * 覆盖打开期间 Workspace 不滚动，与 setScroll 驱动无冲突。
+     */
+    public void setNegativeProgress(float progress) {
+        if (!mNegativePageEnabled) {
+            return;
+        }
+        float position = 1f - Math.max(0f, Math.min(1f, progress));
+        if (Float.compare(mCurrentPosition, position) != 0) {
+            if (mAnimator != null) {
+                // 移除监听再取消，避免 AnimationCycleListener 把位置拉回主屏页
+                mAnimator.removeAllListeners();
+                mAnimator.cancel();
+                mAnimator = null;
+            }
+            mLastPosition = Math.round(mCurrentPosition);
+            mFinalPosition = position;
+            CURRENT_POSITION.set(this, position);
+        }
     }
 
     private void hideAfterDelay() {
@@ -348,7 +405,7 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
             mAnimator.cancel();
             mAnimator = null;
         }
-        mFinalPosition = mActivePage;
+        mFinalPosition = visualPage(mActivePage);
         CURRENT_POSITION.set(this, mFinalPosition);
     }
 
@@ -357,7 +414,7 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
      * {@link #playEntryAnimation()} must be called after this.
      */
     public void prepareEntryAnimation() {
-        mEntryAnimationRadiusFactors = new float[mNumPages];
+        mEntryAnimationRadiusFactors = new float[mVisualPages];
         invalidate();
     }
 
@@ -415,11 +472,12 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
     @Override
     public void setMarkersCount(int numMarkers) {
         mNumPages = numMarkers;
+        refreshVisualPages();
 
         // If the last page gets removed we want to go to the previous page.
         if (mNumPages > 0 && mNumPages == mActivePage) {
             mActivePage--;
-            CURRENT_POSITION.set(this, (float) mActivePage);
+            CURRENT_POSITION.set(this, visualPage(mActivePage));
         }
 
         requestLayout();
@@ -436,7 +494,7 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
 
         // Reapply correct current position which was skipped during setScroll.
         if (mIsScrollPaused && !pause) {
-            CURRENT_POSITION.set(this, (float) mActivePage);
+            CURRENT_POSITION.set(this, visualPage(mActivePage));
         }
 
         mIsScrollPaused = pause;
@@ -449,7 +507,7 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
         // and so the hitboxes of arrows can be clicked easier.
         int width = MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.EXACTLY ?
                 MeasureSpec.getSize(widthMeasureSpec)
-                : (int) ((mNumPages * ((enableLauncherVisualRefresh())
+                : (int) ((mVisualPages * ((enableLauncherVisualRefresh())
                         ? LARGE_WIDTH_MULTIPLIER : SMALL_WIDTH_MULTIPLIER) + 2) * mDotRadius);
         int height = MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY
                 ? MeasureSpec.getSize(heightMeasureSpec)
@@ -460,17 +518,18 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
 
     @Override
     protected void onDraw(Canvas canvas) {
-        if (mNumPages < 2) {
+        if (mVisualPages < 2) {
             return;
         }
 
-        if (mShouldAutoHide && mTotalScroll == 0) {
+        // auto-hide 仅在静止于主屏首页（负一屏未拉出）时生效，负一屏打开期间保持可见
+        if (mShouldAutoHide && mTotalScroll == 0 && mCurrentPosition > 0.99f) {
             mPaginationPaint.setAlpha(INVISIBLE_ALPHA);
             return;
         }
 
         float circleGap = mCircleGap;
-        float x = ((float) getWidth() / 2) - (mCircleGap * ((float) mNumPages - 1) / 2);
+        float x = ((float) getWidth() / 2) - (mCircleGap * ((float) mVisualPages - 1) / 2);
         float y = getHeight() / 2;
 
         if (mEntryAnimationRadiusFactors != null) {
@@ -536,8 +595,8 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
                 float lastPosition = mLastPosition;
 
                 if (mIsRtl) {
-                    currentPosition = mNumPages - currentPosition - 1;
-                    lastPosition = mNumPages - lastPosition - 1;
+                    currentPosition = mVisualPages - currentPosition - 1;
+                    lastPosition = mVisualPages - lastPosition - 1;
                 }
                 float posDif = Math.abs(lastPosition - currentPosition);
                 float boundedPosition = (posDif > 1)
@@ -563,7 +622,8 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
                 // 1.3 => 000000 0000001111 11000000
                 // 1.6 => 000000 00000011 1111000000
                 // 2.0 => 000000 000000 111111000000
-                for (int i = 0; i < mNumPages; i++) {
+                // 负一屏虚拟页启用时，第 0 个点即负一屏位，与普通点同一套绘制逻辑
+                for (int i = 0; i < mVisualPages; i++) {
                     mPaginationPaint.setAlpha(nonActiveAlpha);
                     float delta = Math.abs(boundedPosition - i);
                     if (delta <= SHIFT_THRESHOLD) {
@@ -614,7 +674,7 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
                     sTempRect.left = sTempRect.right + mGapWidth;
                 }
 
-                if (mOnArrowClickListener != null && boundedPosition <= mNumPages - 2) {
+                if (mOnArrowClickListener != null && boundedPosition <= mVisualPages - 2) {
                     // Here we draw the Right Arrow
                     mArrowRight.setAlpha(alpha);
                     int size = (int) (mGapWidth * 4);
@@ -628,7 +688,7 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
             } else {
                 // Here we draw the dots
                 mPaginationPaint.setAlpha((int) (alpha * DOT_ALPHA_FRACTION));
-                for (int i = 0; i < mNumPages; i++) {
+                for (int i = 0; i < mVisualPages; i++) {
                     canvas.drawCircle(x, y, mDotRadius, mPaginationPaint);
                     x += circleGap;
                 }
@@ -680,7 +740,7 @@ public class PageIndicatorDots extends View implements Insettable, PageIndicator
         float delta = mCurrentPosition - startCircle;
         float diameter = 2 * mDotRadius;
         float startX = ((float) getWidth() / 2)
-                - (mCircleGap * (((float) mNumPages - 1) / 2))
+                - (mCircleGap * (((float) mVisualPages - 1) / 2))
                 - mDotRadius;
         sTempRect.top = (getHeight() * 0.5f) - mDotRadius;
         sTempRect.bottom = (getHeight() * 0.5f) + mDotRadius;
