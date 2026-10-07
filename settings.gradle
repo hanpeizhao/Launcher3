@@ -4,3 +4,4 @@ project(':IconLoader').projectDir = new File(rootDir, 'iconloaderlib')
 include ':animationlib'
 include ':contextualeducationlib'
 include ':flags'
+include ':personalassistant'

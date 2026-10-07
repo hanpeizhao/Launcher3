@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pa_app_name">个人助理</string>
+    <string name="pa_greeting_morning">早上好，新的一天加油</string>
+    <string name="pa_greeting_noon">中午好，休息一下吧</string>
+    <string name="pa_greeting_evening">晚上好，今天辛苦了</string>
+    <string name="pa_greeting_night">夜深了，早点休息</string>
+    <string name="pa_weather_title">26° 多云</string>
+    <string name="pa_weather_desc">深圳 · 空气优 · 今日 21°~29°，午后多云转晴</string>
+    <string name="pa_action_1">出行</string>
+    <string name="pa_action_2">支付</string>
+    <string name="pa_action_3">手电</string>
+    <string name="pa_action_4">相册</string>
+</resources>

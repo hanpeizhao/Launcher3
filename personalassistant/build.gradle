@@ -1,0 +1,82 @@
+// 个人助理 companion 应用：负一屏信息流的内容提供方。
+// 独立 APK / 独立进程，通过 AIDL（aidl/com/sdlaucher/pa/api）把界面
+// 经 SurfaceControlViewHost 嵌入桌面第 0 页，桌面只负责手势和翻页。
+apply plugin: 'com.android.application'
+
+android {
+    compileSdk 36
+    buildToolsVersion BUILD_TOOLS_VERSION
+
+    namespace = 'com.sdlaucher.personalassistant'
+
+    // 使用工程 prebuilt framework.jar 编译（含 WallpaperManager.getBitmap 等 hide API，
+    // 与主工程一致；运行时为真机 framework，动态壁纸等场景仍需运行时兜底）
+    addFrameworkJar('framework.jar')
+
+    defaultConfig {
+        applicationId 'com.sdlaucher.personalassistant'
+        minSdkVersion 26
+        targetSdkVersion 35
+        versionCode 1
+        versionName "1.0"
+    }
+
+    // 与桌面同签名，companion 的服务以 signature 权限保护，仅允许本工程桌面绑定
+    def SIGN_PATH = project.rootDir.absolutePath + '/signapk/178.keystore'
+    signingConfigs {
+        sginconfig {
+            storeFile file(SIGN_PATH)
+            keyAlias 'android'
+            keyPassword '123456'
+            storePassword '123456'
+        }
+    }
+    buildTypes {
+        debug {
+            minifyEnabled false
+            signingConfig signingConfigs.sginconfig
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src/main/java']
+            aidl.srcDirs = ["${rootDir}/aidl"]
+            manifest.srcFile 'src/main/AndroidManifest.xml'
+        }
+    }
+
+    buildFeatures {
+        aidl true
+        buildConfig = true
+    }
+
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    android.variantFilter { variant ->
+        if (variant.buildType.name.endsWith('release')) {
+            variant.setIgnore(true)
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def outputFile = output.outputFile
+            if (outputFile != null && outputFile.name.endsWith('.apk')) {
+                outputFileName = "PaAssistant.apk"
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+}

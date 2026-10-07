@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 快捷入口行：4 个圆形占位按钮 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pa_actions_row"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="20dp"
+    android:layout_marginEnd="20dp"
+    android:layout_marginBottom="12dp"
+    android:background="@drawable/pa_card_bg"
+    android:baselineAligned="false"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:padding="18dp">
+
+    <LinearLayout style="@style/PaActionItem">
+        <TextView style="@style/PaActionIcon" android:text="🚌" />
+        <TextView style="@style/PaActionLabel" android:text="@string/pa_action_1" />
+    </LinearLayout>
+
+    <LinearLayout style="@style/PaActionItem">
+        <TextView style="@style/PaActionIcon" android:text="💳" />
+        <TextView style="@style/PaActionLabel" android:text="@string/pa_action_2" />
+    </LinearLayout>
+
+    <LinearLayout style="@style/PaActionItem">
+        <TextView style="@style/PaActionIcon" android:text="🔦" />
+        <TextView style="@style/PaActionLabel" android:text="@string/pa_action_3" />
+    </LinearLayout>
+
+    <LinearLayout style="@style/PaActionItem">
+        <TextView style="@style/PaActionIcon" android:text="📷" />
+        <TextView style="@style/PaActionLabel" android:text="@string/pa_action_4" />
+    </LinearLayout>
+</LinearLayout>

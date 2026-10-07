@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  个人助理 companion 应用（负一屏内容提供方）。
+  无桌面入口，仅暴露一个 signature 权限保护的绑定服务供桌面嵌入界面。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 仅允许同签名应用（我们的桌面）绑定服务 -->
+    <permission
+        android:name="com.sdlaucher.personalassistant.permission.BIND_PA"
+        android:protectionLevel="signature" />
+
+    <application
+        android:label="@string/pa_app_name"
+        android:allowBackup="false"
+        android:hardwareAccelerated="true">
+
+        <service
+            android:name=".PaService"
+            android:exported="true"
+            android:permission="com.sdlaucher.personalassistant.permission.BIND_PA">
+            <intent-filter>
+                <action android:name="com.sdlaucher.pa.api.BIND" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

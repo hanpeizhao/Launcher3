@@ -110,6 +110,8 @@ android {
             res.srcDirs = ['res']
             //java.srcDirs = ['src', 'src_plugins', 'tests/shared', 'system_ext', 'tests/multivalentTests/shared', 'systemui_core/shared']
             java.srcDirs = ['src', 'src_plugins', 'shared/src', 'system_ext', 'compose/facade/core', 'compose/facade/disabled']
+            // 负一屏跨进程接口：与 personalassistant 模块共享同一份 AIDL
+            aidl.srcDirs = ["${rootDir}/aidl"]
             manifest.srcFile 'AndroidManifest-common.xml'
             proto {
                 srcDirs = ['protos/']
@@ -175,6 +177,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        aidl = true
     }
 
     lintOptions {
