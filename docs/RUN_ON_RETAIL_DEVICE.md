@@ -276,16 +276,18 @@ SecurityException: Permission Denial: android.intent.action.CLOSE_SYSTEM_DIALOGS
 3. **假设 A'：微件自绘内容**（连续截图时间线"无桌面事件黑边自现"）→ 后续对照实验表明时间线误读，且隐藏 ImageView 后黑边依旧 → 证伪
 4. **最终结论：微件调整大小框（AppWidgetResizeFrame）**——AOSP 桌面在添加微件后自动弹出调整框（圆角描边+贴合微件边界，视觉上与放置轮廓无法区分）。它与"点击空白消失"（AbstractFloatingView 点击外部关闭）、"只在首次添加出现"（仅 add 流程自动弹出）、"编辑状态回到正常桌面的瞬间出现"（Launcher 专门等 SPRING_LOADED→NORMAL 过渡完成才显示）完全吻合。MIUI 桌面添加微件后不弹此框，故对比实验显示"系统桌面没黑边"。排查绕了四轮的客观原因：该框显示在 DragLayer 浮层，不在微件子树内，历次 uiautomator 抓取均未覆盖；且现象与拖拽轮廓在视觉上完全同构
 
-**修复**（[Launcher.java `completeAddAppWidget`](../src/com/android/launcher3/Launcher.java)：微件绑定完成加入桌面后不再调用 `showWidgetResizeFrame`——**首添弹框的真正来源**，且该路径不检查 resizeMode、无条件显示）：
+**修复**（两处实证调用点封堵，长按微件→调整大小功能保留）：
 
-- Workspace 的 `getWidgetResizeFrameRunnable`（drop 完成/拖拽取消两条路径）虽也调用 `showForWidget`，但均有 `resizeMode != RESIZE_NONE` 前置条件且实际未复现弹框，**保持 AOSP 原样未改**——这也是"首添弹框、后续拖拽从不弹框"的原因：两条 Workspace 路径要么被 resizeMode 拦住，要么在正常移动流程中根本不走
+- [Launcher.java `completeAddAppWidget`](../src/com/android/launcher3/Launcher.java)：微件绑定完成入桌后不再调用 `showWidgetResizeFrame`——**免配置微件首添弹框的来源**（不检查 resizeMode、无条件显示）
+- [Launcher.java 配置完成分支](../src/com/android/launcher3/Launcher.java)：配置类微件（有设置向导）保存后 `PendingAppWidgetHostView` 重膨胀为真身，随即对新视图调 `showWidgetResizeFrame`——**"点击保存后伴随黑边"的来源**
+- Workspace 的 `getWidgetResizeFrameRunnable`（drop/拖拽取消路径）曾两度怀疑、两度排除：有 `resizeMode != RESIZE_NONE` 前置条件且从未实测弹框，**保持 AOSP 原样**——教训：封堵后现象仍在的路径就不是元凶，不要留投机防御代码
 
 ```
 弹框链路（实锤）：
-  添加微件 drop → 异步绑定完成 → Launcher.completeAddAppWidget → addInScreen
-    → showWidgetResizeFrame →（若状态过渡中）等 SPRING_LOADED→NORMAL 完成
-    → AppWidgetResizeFrame.showForWidget → DragLayer 浮层显示描边框
-  点击空白 → AbstractFloatingView.onTouchDown close → 框消失
+  免配置微件：drop → 绑定完成 → Launcher.completeAddAppWidget → addInScreen → 弹框
+  配置类微件：drop → 配置向导 → 点击保存 → completeRestoreAppWidget 重膨胀 → 弹框
+  两处最终都汇入 AppWidgetResizeFrame.showForWidget → DragLayer 浮层描边框
+  点击空白 → AbstractFloatingView 点击外部关闭 → 框消失
 ```
 
 **方法论沉淀**：① Canvas 绘制与浮层都不在 uiautomator 微件子树里，层级抓取必须覆盖全窗口（含 DragLayer）；② "与拖拽轮廓视觉同构"的元素要靠**行为特征**区分（出现时机、消失条件、出现流程），而非外观；③ 多路径特性（同一效果两个入口）修一处不等于修复，要枚举所有调用点。

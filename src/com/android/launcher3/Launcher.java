@@ -1530,14 +1530,11 @@ public class Launcher extends StatefulActivity<LauncherState>
             // LauncherAppWidgetHostView in workspace.
             completeRestoreAppWidget(appWidgetId, LauncherAppWidgetInfo.RESTORE_COMPLETED);
 
-            // Show resize frame on the newly inflated LauncherAppWidgetHostView.
+            // 不在配置完成重膨胀后显示调整大小框：该框在 HyperOS 上表现为
+            // 贴合微件的黑色描边残留。需要调整大小时通过长按微件菜单操作。
+            // We always update widget size after re-inflating PendingAppWidgetHostView
             LauncherAppWidgetHostView reInflatedHostView =
                     getWorkspace().getWidgetForAppWidgetId(appWidgetId);
-            showWidgetResizeFrame(
-                    reInflatedHostView,
-                    (LauncherAppWidgetInfo) reInflatedHostView.getTag(),
-                    presenterPos);
-            // We always update widget size after re-inflating PendingAppWidgetHostView
             WidgetSizes.updateWidgetSizeRanges(
                     reInflatedHostView, this, itemInfo.spanX, itemInfo.spanY);
             return;
