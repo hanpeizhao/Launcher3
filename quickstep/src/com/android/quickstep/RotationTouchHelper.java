@@ -30,6 +30,8 @@ import static com.android.launcher3.util.NavigationMode.THREE_BUTTONS;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.hardware.display.DisplayManager;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 
@@ -148,7 +150,17 @@ public class RotationTouchHelper implements DisplayInfoChangeListener {
 
         Resources resources = mContext.getResources();
         mOrientationTouchTransformer = new OrientationTouchTransformer(resources, mMode,
-                () -> QuickStepContract.getWindowCornerRadius(mContext));
+                () -> {
+                    try {
+                        return QuickStepContract.getWindowCornerRadius(mContext);
+                    } catch (UnsupportedOperationException e) {
+                        // 非可视化 Context（应用/服务上下文）不关联 Display，改用 DisplayContext 获取
+                        Display display = mContext.getSystemService(DisplayManager.class)
+                                .getDisplay(DEFAULT_DISPLAY);
+                        return QuickStepContract.getWindowCornerRadius(
+                                mContext.createDisplayContext(display));
+                    }
+                });
 
         // Register for navigation mode and rotation changes
         mDisplayController.addChangeListenerForDisplay(this, mDisplayId);

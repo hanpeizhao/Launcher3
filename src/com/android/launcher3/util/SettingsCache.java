@@ -27,6 +27,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.util.Log;
 
 import androidx.annotation.UiThread;
 
@@ -157,12 +158,19 @@ public class SettingsCache extends ContentObserver {
     private boolean updateValue(Uri keyUri, int defaultValue) {
         String key = keyUri.getLastPathSegment();
         boolean newVal;
-        if (keyUri.toString().startsWith(SYSTEM_URI_PREFIX)) {
-            newVal = Settings.System.getInt(mResolver, key, defaultValue) == 1;
-        } else if (keyUri.toString().startsWith(GLOBAL_URI_PREFIX)) {
-            newVal = Settings.Global.getInt(mResolver, key, defaultValue) == 1;
-        } else { // SETTING_SECURE
-            newVal = Settings.Secure.getInt(mResolver, key, defaultValue) == 1;
+        try {
+            if (keyUri.toString().startsWith(SYSTEM_URI_PREFIX)) {
+                newVal = Settings.System.getInt(mResolver, key, defaultValue) == 1;
+            } else if (keyUri.toString().startsWith(GLOBAL_URI_PREFIX)) {
+                newVal = Settings.Global.getInt(mResolver, key, defaultValue) == 1;
+            } else { // SETTING_SECURE
+                newVal = Settings.Secure.getInt(mResolver, key, defaultValue) == 1;
+            }
+        } catch (SecurityException e) {
+            // 非系统应用身份运行（如移植到零售机）时，@hide 且未标注 @Readable 的 settings key
+            // 禁止读取，按默认值处理并缓存，避免反复抛异常
+            Log.w("SettingsCache", "Settings key not readable: " + key, e);
+            newVal = defaultValue == 1;
         }
 
         mKeyCache.put(keyUri, newVal);

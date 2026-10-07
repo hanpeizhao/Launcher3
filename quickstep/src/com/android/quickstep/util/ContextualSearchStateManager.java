@@ -27,6 +27,7 @@ import static com.android.quickstep.util.SystemActionConstants.SYSTEM_ACTION_ID_
 import android.app.PendingIntent;
 import android.app.RemoteAction;
 import android.content.Context;
+import android.content.res.Resources;
 import android.content.IIntentReceiver;
 import android.content.IIntentSender;
 import android.content.Intent;
@@ -98,8 +99,15 @@ public class ContextualSearchStateManager  {
         mContextualSearchPackageReceiver =
                 new SimpleBroadcastReceiver(context, UI_HELPER_EXECUTOR,
                         (unused) -> requestUpdateProperties());
-        mContextualSearchPackage = mContext.getResources().getString(
-                com.android.internal.R.string.config_defaultContextualSearchPackageName);
+        // 非原生框架（如 HyperOS）上该内部资源不存在，缺失时降级禁用 Contextual Search
+        String contextualSearchPackage;
+        try {
+            contextualSearchPackage = mContext.getResources().getString(
+                    com.android.internal.R.string.config_defaultContextualSearchPackageName);
+        } catch (Resources.NotFoundException e) {
+            contextualSearchPackage = "";
+        }
+        mContextualSearchPackage = contextualSearchPackage;
         mSystemUiProxy = systemUiProxy;
         mTopTaskTracker = topTaskTracker;
 
